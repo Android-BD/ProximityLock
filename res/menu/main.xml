@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+	<item android:id="@+id/itemServiceStart" 
+	      android:icon="@android:drawable/ic_media_play"
+	      android:title="@string/titleServiceStart"
+          android:showAsAction="ifRoom"></item>
+	<item android:id="@+id/itemServiceStop" 
+	      android:icon="@android:drawable/ic_media_pause"
+	      android:title="@string/titleServiceStop"
+          android:showAsAction="ifRoom"></item>
+</menu>

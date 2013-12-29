@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Proximity Lock</string>
+    <string name="titleServiceStart">Start Service</string>
+    <string name="titleServiceStop">Stop Service</string>
+    <string name="buttonName">Enable Device Manager</string>
+    <string name="textField">0</string>
+
+</resources>
