@@ -1,25 +1,29 @@
 package com.paep3nguin.proximityLock;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
+import android.app.AlarmManager;
 import android.app.KeyguardManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.SystemClock;
+import android.preference.PreferenceManager;
+import android.view.View.OnSystemUiVisibilityChangeListener;
 
-public class LockService extends Service implements SensorEventListener{
+public class LockService extends Service implements SensorEventListener, OnSystemUiVisibilityChangeListener{
 	private SensorManager mSensorManager;
 	private Sensor mProximity;
 	PowerManager powerManager;
@@ -27,11 +31,16 @@ public class LockService extends Service implements SensorEventListener{
 	ComponentName compName;
 	DevicePolicyManager deviceManager;
 	boolean isScreenOn;
-	Timer timer;
 	static final int RESULT_ENABLE = 1;
 	float proximity;
 	WakeLock screenLock;
 	ToneGenerator tg;
+	SharedPreferences sharedPref;
+	private Handler timerHandler = new Handler();
+	//Preference values
+	boolean beepPref;
+	int lockDelay;
+	int unlockDelay;
 	
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -42,25 +51,33 @@ public class LockService extends Service implements SensorEventListener{
 	public void onCreate(){
 		super.onCreate();
 		
-		deviceManager = (DevicePolicyManager)getSystemService(  
-		          Context.DEVICE_POLICY_SERVICE);
+		deviceManager = (DevicePolicyManager)getSystemService(DEVICE_POLICY_SERVICE);
 
 		compName = new ComponentName(this, MyAdmin.class);
 		
 		powerManager = (PowerManager) getSystemService(POWER_SERVICE);
 		
-		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 		mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		  
 
-		tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME);
-	}
-	
-	public int onStartCommand(Intent intent, int flags, int startId){  
+		this.sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+		
+		//Registers proximity sensor listener
 		mSensorManager.registerListener(this,
 			    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
 			    SensorManager.SENSOR_DELAY_NORMAL);
+
+		//Makes tone generator to play beeps
+		tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME);
 		
-		timer = new Timer();
+		//Get settings
+		beepPref = sharedPref.getBoolean("unlockBeep", false);
+		lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
+		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
+	}
+	
+	public int onStartCommand(Intent intent, int flags, int startId){
 		
 		screenLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
 		        | PowerManager.ON_AFTER_RELEASE, "MyWakeLock");
@@ -75,15 +92,53 @@ public class LockService extends Service implements SensorEventListener{
 		mSensorManager.unregisterListener(LockService.this);
 		super.onDestroy();
 	}
+	
+	@Override
+	public void onTaskRemoved(Intent rootIntent) {
+	    // TODO Auto-generated method stub
+	    Intent restartService = new Intent(getApplicationContext(),
+	            this.getClass());
+	    restartService.setPackage(getPackageName());
+	    PendingIntent restartServicePI = PendingIntent.getService(
+	            getApplicationContext(), 1, restartService,
+	            PendingIntent.FLAG_ONE_SHOT);
+	    AlarmManager alarmService = (AlarmManager)getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+	    alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() +10000, restartServicePI);
 
-	public void startLockTimer(){
-		timer.schedule(new TimerTask() {
-			   public void run() {
-				   if (proximity < 1){
-	            		deviceManager.lockNow();
-			   		}
-			   }
-			}, 1000);
+	}
+
+	//Sounds a beep if the proper preference is checked
+	public void beep(){
+		if(beepPref == true){
+			tg.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);			
+		}
+	}
+	
+	private Runnable lockTimer = new Runnable(){
+		@Override
+		public void run() {
+			   if (proximity < 1){
+         		beep();
+         		deviceManager.lockNow();
+		   		}
+		   }
+	};
+	
+	private Runnable unlockTimer = new Runnable(){
+		@Override
+		public void run() {
+			   if (proximity >= 1){
+					beep();
+					screenLock.acquire();
+				    screenLock.release();
+		   		}
+		   }
+	};
+	
+	@Override
+	public void onSystemUiVisibilityChange(int arg0) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	@Override
@@ -98,15 +153,13 @@ public class LockService extends Service implements SensorEventListener{
 		if (powerManager.isScreenOn() && proximity < 1){
 			boolean active = deviceManager.isAdminActive(compName);  
             if (active) {
-        		startLockTimer();
+        		timerHandler.postDelayed(lockTimer, lockDelay);
             }
 		}
 		if (!powerManager.isScreenOn() && proximity >= 1){
 			boolean active = deviceManager.isAdminActive(compName);  
             if (active) {
-				tg.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);
-				screenLock.acquire();
-			    screenLock.release();
+            	timerHandler.postDelayed(unlockTimer, unlockDelay);
             }
 		}
 		/*if (!powerManager.isScreenOn() && proximity >= 2){

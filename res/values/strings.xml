@@ -2,9 +2,21 @@
 <resources>
 
     <string name="app_name">Proximity Lock</string>
-    <string name="titleServiceStart">Start Service</string>
-    <string name="titleServiceStop">Stop Service</string>
+    <string name="appPreferences">Proximity Lock Preferences</string>
     <string name="buttonName">Enable Device Manager</string>
     <string name="textField">0</string>
+    
+    <!-- Menu bar items -->
+    <string name="titleServiceStart">Start Service</string>
+    <string name="titleServiceStop">Stop Service</string>
+    <string name="titlePreferences">Preferences</string>
+    
+    <!-- Preferences -->
+    <string name="titlePrefSound">Beep on lock/unlock</string>
+    <string name="summaryPrefSound">Beeps when the device is locked/unlocked by Proximity Lock</string>
+    <string name="titleLockDelay">Delay before locking</string>
+    <string name="summaryLockDelay">Length of time before the display locks in milliseconds</string>
+    <string name="titleUnLockDelay">Delay before unlocking</string>
+    <string name="summaryUnLockDelay">Length of time before the display unlocks in milliseconds</string>
 
 </resources>

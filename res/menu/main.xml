@@ -8,4 +8,8 @@
 	      android:icon="@android:drawable/ic_media_pause"
 	      android:title="@string/titleServiceStop"
           android:showAsAction="ifRoom"></item>
+	<item android:id="@+id/itemPreferences"
+	      android:icon="@android:drawable/ic_menu_preferences"
+	      android:title="@string/titlePreferences"
+	      android:showAsAction="ifRoom"/>
 </menu>

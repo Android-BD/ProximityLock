@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <CheckBoxPreference 
+        android:title="@string/titlePrefSound"
+        android:key="unlockBeep"
+        android:summary="@string/summaryPrefSound"
+        android:defaultValue="false"/>
+    <EditTextPreference 
+        android:title="@string/titleLockDelay"
+        android:summary="@string/summaryLockDelay"
+        android:key="lockDelay"
+        android:defaultValue="1000"/>
+    <EditTextPreference 
+        android:title="@string/titleUnLockDelay"
+        android:summary="@string/summaryUnLockDelay"
+        android:key="unlockDelay"
+        android:defaultValue="3000"/>
+
+</PreferenceScreen>

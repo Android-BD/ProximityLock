@@ -1,7 +1,5 @@
 package com.paep3nguin.proximityLock;
 
-import android.os.Bundle;
-import android.os.PowerManager;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -14,6 +12,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Bundle;
+import android.os.PowerManager;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -21,15 +22,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
-import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity implements OnClickListener/*, SensorEventListener*/{
+public class MainActivity extends Activity implements OnClickListener, SensorEventListener{
 	private Button button;
 	private SensorManager mSensorManager;
-	private Sensor mProximity;
+	Sensor mProximity;
 	static final int RESULT_ENABLE = 1;
 	
 	ComponentName compName;
@@ -37,12 +37,10 @@ public class MainActivity extends Activity implements OnClickListener/*, SensorE
 	TextView textView;
 	Window window = this.getWindow();
 	boolean isScreenOn;
-	PowerManager powerManager;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
 		
 		deviceManager = (DevicePolicyManager)getSystemService(  
 		          Context.DEVICE_POLICY_SERVICE);
@@ -59,13 +57,14 @@ public class MainActivity extends Activity implements OnClickListener/*, SensorE
 		actionBar.setDisplayShowHomeEnabled(true);
 		
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-		Sensor mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
 		
-		/*mSensorManager.registerListener(this,
-			    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
-			    SensorManager.SENSOR_DELAY_NORMAL);*/
+		mSensorManager.registerListener(this,
+			    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+			    1000000);
 		
-		powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+		//Sets default preference values
+		PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
 	}
 
 	// Make action bar
@@ -75,6 +74,7 @@ public class MainActivity extends Activity implements OnClickListener/*, SensorE
 		  return super.onCreateOptionsMenu(menu);
 	  }
 	  
+	  // Detects if service is running
 	  private boolean isMyServiceRunning() {
 		    ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 		    for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -91,13 +91,17 @@ public class MainActivity extends Activity implements OnClickListener/*, SensorE
 		  switch (item.getItemId()){
 		  case R.id.itemServiceStart:
 			  startService(new Intent(this, LockService.class));
-			  textView.setText(Boolean.toString(isMyServiceRunning()));
+			  /*textView.setText(Float.toString(mProximity.getPower()));*/
 			  Toast.makeText(MainActivity.this, "Service started", Toast.LENGTH_SHORT).show();
 			  break;
 		  case R.id.itemServiceStop:
 			  stopService(new Intent(this, LockService.class));
-			  textView.setText(Boolean.toString(isMyServiceRunning()));
+			  /*textView.setText(Boolean.toString(isMyServiceRunning()));*/
 			  Toast.makeText(MainActivity.this, "Service stopped", Toast.LENGTH_SHORT).show();
+			  break;
+		  case R.id.itemPreferences:
+			  Intent intent = new Intent(this, PrefsActivity.class);
+			  startActivity(intent);
 			  break;
 		  }
 		  return true;
@@ -129,7 +133,7 @@ public class MainActivity extends Activity implements OnClickListener/*, SensorE
         super.onActivityResult(requestCode, resultCode, data);  
     }
 
-	/*@Override
+	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
 		// TODO Auto-generated method stub
 		
@@ -138,29 +142,16 @@ public class MainActivity extends Activity implements OnClickListener/*, SensorE
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		// TODO Auto-generated method stub
-		float proximity = event.values[0];
-		if (powerManager.isScreenOn() && proximity < 1){
-			boolean active = deviceManager.isAdminActive(compName);  
-            if (active) {
-                deviceManager.lockNow();
-            }
-		}
-		if (!powerManager.isScreenOn() && proximity >= 1){
-			boolean active = deviceManager.isAdminActive(compName);  
-            if (active) {
-                window.addFlags(LayoutParams.FLAG_DISMISS_KEYGUARD);
-                window.addFlags(LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-                window.addFlags(LayoutParams.FLAG_TURN_SCREEN_ON);
-            } 
-		}
-		if (!powerManager.isScreenOn() && proximity >= 2){
-			boolean active = deviceManager.isAdminActive(compName);  
-            if (active) {
-                window.addFlags(LayoutParams.FLAG_DISMISS_KEYGUARD);
-                window.addFlags(LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-                window.addFlags(LayoutParams.FLAG_TURN_SCREEN_ON);
-            } 
-		}
-	    textView.setText(Boolean.toString(powerManager.isScreenOn()));
-	}*/
+
+		/*final double alpha = 0.8;
+		
+		double[] gravity = {0,0,0};
+		
+		gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
+	    gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
+	    gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
+	    
+		textView.setText(Double.toString(gravity[0]) + "\n" + Double.toString(gravity[1]) + "\n" + Double.toString(gravity[2]) + "\n" + Float.toString(mProximity.getPower()));*/
+		textView.setText(Float.toString(event.values[0]) + "\n" + Float.toString(event.values[1]) + "\n" + Float.toString(event.values[2]) + "\n" + Float.toString(mProximity.getPower()));
+	}
 }
