@@ -5,10 +5,13 @@ import android.app.KeyguardManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.app.admin.DevicePolicyManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -21,6 +24,8 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.util.Log;
+import android.view.Display;
 import android.view.OrientationEventListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 
@@ -42,6 +47,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	ToneGenerator tg;
 	SharedPreferences sharedPref;
 	private Handler timerHandler = new Handler();
+	private static final String BCAST_CONFIGCHANGED = "android.intent.action.CONFIGURATION_CHANGED";
 	//Preference values
 	boolean beepPref;
 	boolean rotateLock;
@@ -182,7 +188,12 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	}
 
 	@Override
-	public void onSensorChanged(SensorEvent event) {
+	public void onSensorChanged(SensorEvent event){
+		if(rotateLock){
+			int width = getApplicationContext().getResources().getDisplayMetrics().widthPixels;
+			int height = getApplicationContext().getResources().getDisplayMetrics().heightPixels;
+			if(height < width){return;}
+		}
 		switch (lockMethod){
 		case 1:
 			if (event.sensor.getType() == Sensor.TYPE_GRAVITY){

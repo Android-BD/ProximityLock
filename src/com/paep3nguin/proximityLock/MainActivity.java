@@ -171,6 +171,6 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 	    gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
 	    
 		textView.setText(Double.toString(gravity[0]) + "\n" + Double.toString(gravity[1]) + "\n" + Double.toString(gravity[2]) + "\n" + Float.toString(mProximity.getPower()));*/
-		textView.setText(Float.toString(event.values[0]) + "\n" + Float.toString(event.values[1]) + "\n" + Float.toString(event.values[2]) + "\n" + Float.toString(mProximity.getPower()));
+		/*textView.setText(Float.toString(event.values[0]) + "\n" + Float.toString(event.values[1]) + "\n" + Float.toString(event.values[2]) + "\n" + Float.toString(mProximity.getPower()));*/
 	}
 }
