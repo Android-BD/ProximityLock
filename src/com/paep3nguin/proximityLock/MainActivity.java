@@ -37,6 +37,7 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 	TextView textView;
 	Window window = this.getWindow();
 	boolean isScreenOn;
+	boolean active;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +53,11 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 		button = (Button) findViewById(R.id.button1);
 		button.setOnClickListener(this);
 		textView = (TextView) findViewById(R.id.textView1);
+		
+		active = deviceManager.isAdminActive(compName);
+		if (active){
+			button.setText("Disable app as device administrator");
+		}
 		
 		ActionBar actionBar = getActionBar();
 		actionBar.setDisplayShowHomeEnabled(true);
@@ -90,9 +96,14 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 	  public boolean onOptionsItemSelected(MenuItem item){
 		  switch (item.getItemId()){
 		  case R.id.itemServiceStart:
-			  startService(new Intent(this, LockService.class));
-			  /*textView.setText(Float.toString(mProximity.getPower()));*/
-			  Toast.makeText(MainActivity.this, "Service started", Toast.LENGTH_SHORT).show();
+			  active = deviceManager.isAdminActive(compName);
+			  if (active){
+				  startService(new Intent(this, LockService.class));
+				  /*textView.setText(Float.toString(mProximity.getPower()));*/
+				  Toast.makeText(MainActivity.this, "Service started", Toast.LENGTH_SHORT).show();
+			  } else {
+				  Toast.makeText(MainActivity.this, "Enable device manager first", Toast.LENGTH_SHORT).show();
+			  }
 			  break;
 		  case R.id.itemServiceStop:
 			  stopService(new Intent(this, LockService.class));
@@ -100,8 +111,7 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 			  Toast.makeText(MainActivity.this, "Service stopped", Toast.LENGTH_SHORT).show();
 			  break;
 		  case R.id.itemPreferences:
-			  Intent intent = new Intent(this, PrefsActivity.class);
-			  startActivity(intent);
+			  startActivity(new Intent(this, PrefsActivity.class));
 			  break;
 		  }
 		  return true;
@@ -110,13 +120,22 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 	@Override
 	public void onClick(View v) {
 		// TODO Auto-generated method stub
-		if(v == button){  
-		   Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);  
-	            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN,  
-	                    compName);
-	            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,  
-	                    "Additional text explaining why this needs to be added.");  
-	            startActivityForResult(intent, RESULT_ENABLE);  
+		if(v == button){
+			active = deviceManager.isAdminActive(compName);
+			if (!active){
+			   Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);  
+		            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN,  
+		                    compName);
+		            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,  
+		                    "Please click activate to allow this app to lock the screen.");  
+		            startActivityForResult(intent, RESULT_ENABLE);
+	            button.setText("Disable app as device administrator");
+            } else {
+  			    stopService(new Intent(this, LockService.class));
+  			    Toast.makeText(MainActivity.this, "Service stopped", Toast.LENGTH_SHORT).show();
+            	deviceManager.removeActiveAdmin(compName);
+	            button.setText("Enable app as device administrator");
+            }
 		  }
 	}
 

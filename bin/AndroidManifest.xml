@@ -38,6 +38,7 @@
                 android:resource="@layout/policies" />
                 <intent-filter>
                     <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                    <action android:name="android.app.action.DEVICE_ADMIN_DISBLED" />
                 </intent-filter>
         </receiver>
         <service android:name=".LockService"></service>

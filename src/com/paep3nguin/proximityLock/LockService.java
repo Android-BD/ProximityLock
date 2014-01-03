@@ -21,6 +21,7 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.view.OrientationEventListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 
 public class LockService extends Service implements SensorEventListener, OnSystemUiVisibilityChangeListener{
@@ -28,6 +29,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	private Sensor mProximity;
 	boolean isProximityRegistered;
 	private Sensor mGravity;
+	OrientationEventListener oListener;
 	PowerManager powerManager;
 	KeyguardManager keyguardManager;
 	ComponentName compName;
@@ -35,14 +37,18 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	boolean isScreenOn;
 	static final int RESULT_ENABLE = 1;
 	float proximity;
+	float lastyAcceleration;
 	WakeLock screenLock;
 	ToneGenerator tg;
 	SharedPreferences sharedPref;
 	private Handler timerHandler = new Handler();
 	//Preference values
 	boolean beepPref;
+	boolean rotateLock;
 	int lockDelay;
 	int unlockDelay;
+	int lockMethod;
+	int gravityRate;
 	
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -53,40 +59,59 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	public void onCreate(){
 		super.onCreate();
 		
+		//Registers device manager
 		deviceManager = (DevicePolicyManager)getSystemService(DEVICE_POLICY_SERVICE);
-
 		compName = new ComponentName(this, MyAdmin.class);
 		
-		powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-		
-		mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-		mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-		mGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-
-		this.sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-		
-		//Registers proximity sensor listener
-		isProximityRegistered = false;
-		isProximityRegistered = mSensorManager.registerListener(this,
-			    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
-			    SensorManager.SENSOR_DELAY_NORMAL);
+		//Registers power manager
+		powerManager = (PowerManager)getSystemService(POWER_SERVICE);
 
 		//Makes tone generator to play beeps
 		tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME);
 		
-		//Get settings
-		beepPref = sharedPref.getBoolean("unlockBeep", false);
-		lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
-		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
+		//Initializes wakelock
+		screenLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
+		        | PowerManager.ON_AFTER_RELEASE, "MyWakeLock");
+
+		//Gets shared preferences
+		this.sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+		
+		//Registers sensor manager and sensors
+		mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+		mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		mGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
 	}
 	
 	public int onStartCommand(Intent intent, int flags, int startId){
 		
-		screenLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
-		        | PowerManager.ON_AFTER_RELEASE, "MyWakeLock");
+		//Get values for preferences
+		lockMethod = Integer.parseInt(sharedPref.getString("lockMethod","1"));
+		lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
+		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
+		gravityRate = Integer.parseInt(sharedPref.getString("gravityRate", "500"));
+		rotateLock = sharedPref.getBoolean("rotateLock", true);
+		beepPref = sharedPref.getBoolean("unlockBeep", false);
+		
+		//Registers listeners depending on selected lock method
+		switch (lockMethod){
+		case 0: case 1:
+			//Registers proximity sensor listener
+			isProximityRegistered = false;
+			isProximityRegistered = mSensorManager.registerListener(this,
+				    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
+				    SensorManager.SENSOR_DELAY_NORMAL);
+			break;
+		case 2: case 3:
+			//Registers gravity sensor listener
+			mSensorManager.registerListener(this,
+				    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+				    gravityRate * 1000);
+
+			lastyAcceleration = 0;
+			break;
+		}
 		
 		super.onStartCommand(intent, flags, startId);
-		
 		return START_STICKY;
 	}
 	
@@ -94,12 +119,12 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	public void onDestroy(){
 		mSensorManager.unregisterListener(this, mProximity);
 		mSensorManager.unregisterListener(this, mGravity);
+    	timerHandler.removeCallbacks(null);
 		super.onDestroy();
 	}
 	
 	@Override
 	public void onTaskRemoved(Intent rootIntent) {
-	    // TODO Auto-generated method stub
 	    Intent restartService = new Intent(getApplicationContext(),
 	            this.getClass());
 	    restartService.setPackage(getPackageName());
@@ -124,10 +149,12 @@ public class LockService extends Service implements SensorEventListener, OnSyste
          		beep();
          		deviceManager.lockNow();
         		
-        		//Registers gravity sensor listener
-				mSensorManager.registerListener(LockService.this,
-					    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
-					    1000000);
+         		if (lockMethod == 1){
+	        		//Registers gravity sensor listener
+					mSensorManager.registerListener(LockService.this,
+						    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+						    gravityRate * 1000);
+				}
 		   }
 	};
 	
@@ -137,75 +164,79 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					beep();
 					screenLock.acquire();
 				    screenLock.release();
-					mSensorManager.unregisterListener(LockService.this, mGravity);
+				    
+				    if (lockMethod == 1){
+				    	mSensorManager.unregisterListener(LockService.this, mGravity);
+					}
 		   }
 	};
 	
 	@Override
 	public void onSystemUiVisibilityChange(int arg0) {
-		// TODO Auto-generated method stub
-		
+		//Implement!!!
 	}
 	
 	@Override
 	public void onAccuracyChanged(Sensor arg0, int arg1) {
-		// TODO Auto-generated method stub
+		//Unnecessary
 	}
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
-		// TODO Auto-generated method stub
-		if (event.sensor.getType() == Sensor.TYPE_PROXIMITY){
-			proximity = event.values[0];
-			if (powerManager.isScreenOn() && proximity < 1){
-				boolean active = deviceManager.isAdminActive(compName);  
-	            if (active) {
-	        		timerHandler.postDelayed(lockTimer, lockDelay);
-	            }
-			}
-			if (powerManager.isScreenOn() && proximity >= 1){
-				boolean active = deviceManager.isAdminActive(compName);  
-	            if (active) {
-	            	timerHandler.removeCallbacks(lockTimer);
-	            }
-			}
-			if (!powerManager.isScreenOn() && proximity >= 1){
-				boolean active = deviceManager.isAdminActive(compName);  
-	            if (active) {
-	            	timerHandler.postDelayed(unlockTimer, unlockDelay);
-	            }
-			}
-			if (!powerManager.isScreenOn() && proximity < 1){
-				boolean active = deviceManager.isAdminActive(compName);  
-	            if (active) {
-	            	timerHandler.removeCallbacks(unlockTimer);
-	            }
-			}
-		}
-		if (event.sensor.getType() == Sensor.TYPE_GRAVITY){
-			float yAcceleration = event.values[1];
-			if (yAcceleration >= -5){
-				//Registers proximity sensor listener
-				if (isProximityRegistered == false){
-					isProximityRegistered = mSensorManager.registerListener(this,
-					    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
-					    SensorManager.SENSOR_DELAY_NORMAL);
+		switch (lockMethod){
+		case 1:
+			if (event.sensor.getType() == Sensor.TYPE_GRAVITY){
+				float yAcceleration = event.values[1];
+				if (yAcceleration >= -5){
+					//Registers proximity sensor listener
+					if (isProximityRegistered == false){
+						isProximityRegistered = mSensorManager.registerListener(this,
+						    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
+						    SensorManager.SENSOR_DELAY_NORMAL);
+					}
+				}
+				if (yAcceleration < -5){
+	         		if (isProximityRegistered == true){
+	         			mSensorManager.unregisterListener(this, mProximity);
+	         			isProximityRegistered = false;
+	         		}
 				}
 			}
-			if (yAcceleration < -5){
-         		if (isProximityRegistered == true){
-         			mSensorManager.unregisterListener(this, mProximity);
-         			isProximityRegistered = false;
-         		}
+		case 0:
+			if (event.sensor.getType() == Sensor.TYPE_PROXIMITY){
+				proximity = event.values[0];
+				if (powerManager.isScreenOn() && proximity < 1){
+	        		timerHandler.postDelayed(lockTimer, lockDelay);
+				}
+				if (powerManager.isScreenOn() && proximity >= 1){
+	            	timerHandler.removeCallbacks(lockTimer);
+				}
+				if (!powerManager.isScreenOn() && proximity >= 1){
+	            	timerHandler.postDelayed(unlockTimer, unlockDelay);
+				}
+				if (!powerManager.isScreenOn() && proximity < 1){
+	            	timerHandler.removeCallbacks(unlockTimer);
+				}
 			}
+			break;
+		case 2:
+			if (event.sensor.getType() == Sensor.TYPE_GRAVITY){
+				float yAcceleration = event.values[1];
+				if (powerManager.isScreenOn() && yAcceleration < -5 && lastyAcceleration >= -5){
+	        		timerHandler.postDelayed(lockTimer, lockDelay);
+				}
+				if (powerManager.isScreenOn() && yAcceleration >= -5 && lastyAcceleration < -5){
+	            	timerHandler.removeCallbacks(lockTimer);
+				}
+				if (!powerManager.isScreenOn() && yAcceleration >= -5 && lastyAcceleration < -5){
+	            	timerHandler.postDelayed(unlockTimer, unlockDelay);
+				}
+				if (!powerManager.isScreenOn() && yAcceleration < -5 && lastyAcceleration >= -5){
+	            	timerHandler.removeCallbacks(unlockTimer);
+				}
+				lastyAcceleration = event.values[1];
+			}
+			break;
 		}
-		/*if (!powerManager.isScreenOn() && proximity >= 2){
-			boolean active = deviceManager.isAdminActive(compName);  
-            if (active) {
-                window.addFlags(LayoutParams.FLAG_DISMISS_KEYGUARD);
-                window.addFlags(LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-                window.addFlags(LayoutParams.FLAG_TURN_SCREEN_ON);
-            } 
-		}*/
 	}
 }

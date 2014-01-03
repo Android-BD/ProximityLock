@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
-    <CheckBoxPreference 
-        android:title="@string/titlePrefSound"
-        android:key="unlockBeep"
-        android:summary="@string/summaryPrefSound"
-        android:defaultValue="false"/>
+    <ListPreference 
+        android:key="lockMethod"
+        android:title="@string/titleLockMethod"
+        android:summary="@string/summaryLockMethod"
+        android:dialogTitle="@string/dialogTitleLockMethod"
+        android:entries="@array/lockMethodKeys"
+        android:entryValues="@array/lockMethodValues"
+        android:defaultValue="1"/>
     <EditTextPreference 
         android:title="@string/titleLockDelay"
         android:summary="@string/summaryLockDelay"
@@ -15,5 +18,19 @@
         android:summary="@string/summaryUnLockDelay"
         android:key="unlockDelay"
         android:defaultValue="3000"/>
-
+    <EditTextPreference 
+        android:title="@string/titleGravityRate"
+        android:summary="@string/summaryGravityRate"
+        android:key="gravityRate"
+        android:defaultValue="500"/>
+    <CheckBoxPreference 
+        android:title="@string/titleRotateLock"
+        android:key="rotateLock"
+        android:summary="@string/summaryRotateLock"
+        android:defaultValue="True"/>
+    <CheckBoxPreference 
+        android:title="@string/titlePrefSound"
+        android:key="unlockBeep"
+        android:summary="@string/summaryPrefSound"
+        android:defaultValue="false"/>
 </PreferenceScreen>

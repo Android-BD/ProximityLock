@@ -3,7 +3,7 @@
 
     <string name="app_name">Proximity Lock</string>
     <string name="appPreferences">Proximity Lock Preferences</string>
-    <string name="buttonName">Enable Device Manager</string>
+    <string name="buttonName">Enable app as device administrator</string>
     <string name="textField">0</string>
     
     <!-- Menu bar items -->
@@ -14,9 +14,20 @@
     <!-- Preferences -->
     <string name="titlePrefSound">Beep on lock/unlock</string>
     <string name="summaryPrefSound">Beeps when the device is locked/unlocked by Proximity Lock</string>
+    
     <string name="titleLockDelay">Delay before locking</string>
     <string name="summaryLockDelay">Length of time before the display locks in milliseconds</string>
+    
     <string name="titleUnLockDelay">Delay before unlocking</string>
     <string name="summaryUnLockDelay">Length of time before the display unlocks in milliseconds</string>
+    
+    <string name="titleLockMethod">Locking method</string>
+    <string name="summaryLockMethod">Select the method used to lock/unlock phone</string>
+    
+    <string name="dialogTitleLockMethod">Select method</string>
+    <string name="titleGravityRate">Gravity sensor sampling rate</string>
+    <string name="summaryGravityRate">Lower rates (in milliseconds) increase responsiveness, use more battery</string>
 
+    <string name="titleRotateLock">Disable in portrait mode</string>
+    <string name="summaryRotateLock">Disables the app when the phone is in portrait mode. Useful for playing games</string>
 </resources>

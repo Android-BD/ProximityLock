@@ -8,6 +8,10 @@
 package com.paep3nguin.proximityLock;
 
 public final class R {
+    public static final class array {
+        public static final int lockMethodKeys=0x7f050000;
+        public static final int lockMethodValues=0x7f050001;
+    }
     public static final class attr {
     }
     public static final class dimen {
@@ -17,44 +21,51 @@ public final class R {
          screen margins) for sw720dp devices (e.g. 10" tablets) in landscape here.
     
          */
-        public static final int activity_horizontal_margin=0x7f050000;
-        public static final int activity_vertical_margin=0x7f050001;
+        public static final int activity_horizontal_margin=0x7f060000;
+        public static final int activity_vertical_margin=0x7f060001;
     }
     public static final class drawable {
         public static final int ic_launcher=0x7f020000;
     }
     public static final class id {
-        public static final int button1=0x7f090001;
-        public static final int itemPreferences=0x7f090004;
-        public static final int itemServiceStart=0x7f090002;
-        public static final int itemServiceStop=0x7f090003;
-        public static final int textView1=0x7f090000;
+        public static final int button1=0x7f0a0001;
+        public static final int itemPreferences=0x7f0a0004;
+        public static final int itemServiceStart=0x7f0a0002;
+        public static final int itemServiceStop=0x7f0a0003;
+        public static final int textView1=0x7f0a0000;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
         public static final int policies=0x7f030001;
     }
     public static final class menu {
-        public static final int main=0x7f080000;
+        public static final int main=0x7f090000;
     }
     public static final class string {
-        public static final int appPreferences=0x7f060001;
-        public static final int app_name=0x7f060000;
-        public static final int buttonName=0x7f060002;
-        public static final int summaryLockDelay=0x7f06000a;
-        public static final int summaryPrefSound=0x7f060008;
-        public static final int summaryUnLockDelay=0x7f06000c;
-        public static final int textField=0x7f060003;
-        public static final int titleLockDelay=0x7f060009;
+        public static final int appPreferences=0x7f070001;
+        public static final int app_name=0x7f070000;
+        public static final int buttonName=0x7f070002;
+        public static final int dialogTitleLockMethod=0x7f07000f;
+        public static final int summaryGravityRate=0x7f070011;
+        public static final int summaryLockDelay=0x7f07000a;
+        public static final int summaryLockMethod=0x7f07000e;
+        public static final int summaryPrefSound=0x7f070008;
+        public static final int summaryRotateLock=0x7f070013;
+        public static final int summaryUnLockDelay=0x7f07000c;
+        public static final int textField=0x7f070003;
+        public static final int titleGravityRate=0x7f070010;
+        public static final int titleLockDelay=0x7f070009;
+        public static final int titleLockMethod=0x7f07000d;
         /**  Preferences 
          */
-        public static final int titlePrefSound=0x7f060007;
-        public static final int titlePreferences=0x7f060006;
+        public static final int titlePrefSound=0x7f070007;
+        public static final int titlePreferences=0x7f070006;
+        public static final int titleRotateLock=0x7f070012;
         /**  Menu bar items 
          */
-        public static final int titleServiceStart=0x7f060004;
-        public static final int titleServiceStop=0x7f060005;
-        public static final int titleUnLockDelay=0x7f06000b;
+        public static final int titleServiceStart=0x7f070004;
+        public static final int titleServiceStop=0x7f070005;
+        public static final int titleUnLockDelay=0x7f07000b;
     }
     public static final class style {
         /** 
@@ -78,11 +89,11 @@ public final class R {
     
  API 14 theme customizations can go here. 
          */
-        public static final int AppBaseTheme=0x7f070000;
+        public static final int AppBaseTheme=0x7f080000;
         /**  Application theme. 
  All customizations that are NOT specific to a particular API-level can go here. 
          */
-        public static final int AppTheme=0x7f070001;
+        public static final int AppTheme=0x7f080001;
     }
     public static final class xml {
         public static final int prefs=0x7f040000;
