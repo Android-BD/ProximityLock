@@ -242,21 +242,25 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		case 0:
 			if (event.sensor.getType() == Sensor.TYPE_PROXIMITY){
 				proximity = event.values[0];
-				if (powerManager.isScreenOn() && proximity < 1){
-					partialLock.acquire();
-	        		timerHandler.postDelayed(lockTimer, lockDelay);
+				if (powerManager.isScreenOn()){
+					if (proximity < 1){
+						partialLock.acquire();
+		        		timerHandler.postDelayed(lockTimer, lockDelay);
+					}
+					if (proximity >= 1){
+		            	timerHandler.removeCallbacks(lockTimer);
+		            	partialLock.release();
+					}
 				}
-				if (powerManager.isScreenOn() && proximity >= 1){
-	            	timerHandler.removeCallbacks(lockTimer);
-	            	partialLock.release();
-				}
-				if (!powerManager.isScreenOn() && proximity >= 1){
-					partialLock.acquire();
-	            	timerHandler.postDelayed(unlockTimer, unlockDelay);
-				}
-				if (!powerManager.isScreenOn() && proximity < 1){
-	            	timerHandler.removeCallbacks(unlockTimer);
-	            	partialLock.release();
+				if (!powerManager.isScreenOn()){
+					if (proximity >= 1){
+						partialLock.acquire();
+		            	timerHandler.postDelayed(unlockTimer, unlockDelay);
+					}
+					if (proximity < 1){
+		            	timerHandler.removeCallbacks(unlockTimer);
+		            	partialLock.release();
+					}
 				}
 			}
 			break;
