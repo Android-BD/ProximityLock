@@ -13,7 +13,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
@@ -22,6 +21,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -171,6 +172,9 @@ public class MainActivity extends Activity implements OnClickListener, SensorEve
 	    gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
 	    
 		textView.setText(Double.toString(gravity[0]) + "\n" + Double.toString(gravity[1]) + "\n" + Double.toString(gravity[2]) + "\n" + Float.toString(mProximity.getPower()));*/
-		/*textView.setText(Float.toString(event.values[0]) + "\n" + Float.toString(event.values[1]) + "\n" + Float.toString(event.values[2]) + "\n" + Float.toString(mProximity.getPower()));*/
+		textView.setText(Float.toString(event.values[0]) + "\n" + Float.toString(event.values[1]) + "\n" + Float.toString(event.values[2]) + "\n" + Float.toString(mProximity.getPower()));
+		/*Window window = this.getWindow();
+		window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		textView.setText(Integer.toString(getWindow().getAttributes().flags));*/
 	}
 }

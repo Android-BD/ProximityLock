@@ -46,6 +46,7 @@ public final class R {
         public static final int app_name=0x7f070000;
         public static final int buttonName=0x7f070002;
         public static final int dialogTitleLockMethod=0x7f07000f;
+        public static final int summaryFaceDownLock=0x7f070015;
         public static final int summaryGravityRate=0x7f070011;
         public static final int summaryLockDelay=0x7f07000a;
         public static final int summaryLockMethod=0x7f07000e;
@@ -53,6 +54,7 @@ public final class R {
         public static final int summaryRotateLock=0x7f070013;
         public static final int summaryUnLockDelay=0x7f07000c;
         public static final int textField=0x7f070003;
+        public static final int titleFaceDownLock=0x7f070014;
         public static final int titleGravityRate=0x7f070010;
         public static final int titleLockDelay=0x7f070009;
         public static final int titleLockMethod=0x7f07000d;

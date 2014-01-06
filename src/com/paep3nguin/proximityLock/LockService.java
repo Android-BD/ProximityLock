@@ -5,13 +5,10 @@ import android.app.KeyguardManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.app.admin.DevicePolicyManager;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -24,32 +21,37 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.util.Log;
-import android.view.Display;
 import android.view.OrientationEventListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 
 public class LockService extends Service implements SensorEventListener, OnSystemUiVisibilityChangeListener{
+	//Sensors
 	private SensorManager mSensorManager;
 	private Sensor mProximity;
 	boolean isProximityRegistered;
 	private Sensor mGravity;
-	OrientationEventListener oListener;
-	PowerManager powerManager;
-	KeyguardManager keyguardManager;
-	ComponentName compName;
-	DevicePolicyManager deviceManager;
-	boolean isScreenOn;
-	static final int RESULT_ENABLE = 1;
 	float proximity;
 	float lastyAcceleration;
+	float lastzAcceleration;
+	float yLockThreshold;
+	float zLockThreshold;
+	
+	OrientationEventListener oListener;
+	PowerManager powerManager;
+	DevicePolicyManager deviceManager;
+	ComponentName compName;
+	KeyguardManager keyguardManager;
+	boolean isScreenOn;
+	static final int RESULT_ENABLE = 1;
 	WakeLock screenLock;
+	WakeLock partialLock;
 	ToneGenerator tg;
-	SharedPreferences sharedPref;
 	private Handler timerHandler = new Handler();
-	private static final String BCAST_CONFIGCHANGED = "android.intent.action.CONFIGURATION_CHANGED";
+	
 	//Preference values
+	SharedPreferences sharedPref;
 	boolean beepPref;
+	boolean faceDownLock;
 	boolean rotateLock;
 	int lockDelay;
 	int unlockDelay;
@@ -75,9 +77,10 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		//Makes tone generator to play beeps
 		tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME);
 		
-		//Initializes wakelock
+		//Initializes wake lock
 		screenLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
 		        | PowerManager.ON_AFTER_RELEASE, "MyWakeLock");
+		partialLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakeLock");
 
 		//Gets shared preferences
 		this.sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
@@ -96,6 +99,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
 		gravityRate = Integer.parseInt(sharedPref.getString("gravityRate", "500"));
 		rotateLock = sharedPref.getBoolean("rotateLock", true);
+		faceDownLock = sharedPref.getBoolean("faceDownLock", true);
 		beepPref = sharedPref.getBoolean("unlockBeep", false);
 		
 		//Registers listeners depending on selected lock method
@@ -114,6 +118,9 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				    gravityRate * 1000);
 
 			lastyAcceleration = 0;
+			lastzAcceleration = 0;
+			yLockThreshold = 5;
+			zLockThreshold = 8;
 			break;
 		}
 		
@@ -161,6 +168,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 						    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 						    gravityRate * 1000);
 				}
+         		partialLock.release();
 		   }
 	};
 	
@@ -174,6 +182,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				    if (lockMethod == 1){
 				    	mSensorManager.unregisterListener(LockService.this, mGravity);
 					}
+	         		partialLock.release();
 		   }
 	};
 	
@@ -198,7 +207,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		case 1:
 			if (event.sensor.getType() == Sensor.TYPE_GRAVITY){
 				float yAcceleration = event.values[1];
-				if (yAcceleration >= -5){
+				float zAcceleration = event.values[2];
+				if (yAcceleration >= -yLockThreshold){
 					//Registers proximity sensor listener
 					if (isProximityRegistered == false){
 						isProximityRegistered = mSensorManager.registerListener(this,
@@ -206,46 +216,100 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 						    SensorManager.SENSOR_DELAY_NORMAL);
 					}
 				}
-				if (yAcceleration < -5){
+				if (yAcceleration < -yLockThreshold){
 	         		if (isProximityRegistered == true){
 	         			mSensorManager.unregisterListener(this, mProximity);
 	         			isProximityRegistered = false;
 	         		}
+				}
+				if(faceDownLock){
+					if (zAcceleration >= -zLockThreshold){
+						//Registers proximity sensor listener
+						if (isProximityRegistered == false){
+							isProximityRegistered = mSensorManager.registerListener(this,
+							    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
+							    SensorManager.SENSOR_DELAY_NORMAL);
+						}
+					}
+					if (zAcceleration < -zLockThreshold){
+		         		if (isProximityRegistered == true){
+		         			mSensorManager.unregisterListener(this, mProximity);
+		         			isProximityRegistered = false;
+		         		}
+					}
 				}
 			}
 		case 0:
 			if (event.sensor.getType() == Sensor.TYPE_PROXIMITY){
 				proximity = event.values[0];
 				if (powerManager.isScreenOn() && proximity < 1){
+					partialLock.acquire();
 	        		timerHandler.postDelayed(lockTimer, lockDelay);
 				}
 				if (powerManager.isScreenOn() && proximity >= 1){
 	            	timerHandler.removeCallbacks(lockTimer);
+	            	partialLock.release();
 				}
 				if (!powerManager.isScreenOn() && proximity >= 1){
+					partialLock.acquire();
 	            	timerHandler.postDelayed(unlockTimer, unlockDelay);
 				}
 				if (!powerManager.isScreenOn() && proximity < 1){
 	            	timerHandler.removeCallbacks(unlockTimer);
+	            	partialLock.release();
 				}
 			}
 			break;
 		case 2:
 			if (event.sensor.getType() == Sensor.TYPE_GRAVITY){
 				float yAcceleration = event.values[1];
-				if (powerManager.isScreenOn() && yAcceleration < -5 && lastyAcceleration >= -5){
-	        		timerHandler.postDelayed(lockTimer, lockDelay);
+				float zAcceleration = event.values[2];
+				//Locks if screen is upside down
+				if (powerManager.isScreenOn()){
+					if (yAcceleration < -yLockThreshold && lastyAcceleration >= -yLockThreshold){
+						partialLock.acquire();
+		        		timerHandler.postDelayed(lockTimer, lockDelay);
+					}
+					if (yAcceleration >= -yLockThreshold && lastyAcceleration < -yLockThreshold){
+		            	timerHandler.removeCallbacks(lockTimer);
+		            	partialLock.release();
+					}
 				}
-				if (powerManager.isScreenOn() && yAcceleration >= -5 && lastyAcceleration < -5){
-	            	timerHandler.removeCallbacks(lockTimer);
+				if (!powerManager.isScreenOn()){
+					if (yAcceleration >= -yLockThreshold && lastyAcceleration < -yLockThreshold){
+						partialLock.acquire();
+		            	timerHandler.postDelayed(unlockTimer, unlockDelay);
+					}
+					if(yAcceleration < -yLockThreshold && lastyAcceleration >= -yLockThreshold){
+		            	timerHandler.removeCallbacks(unlockTimer);
+		            	partialLock.release();
+					}
 				}
-				if (!powerManager.isScreenOn() && yAcceleration >= -5 && lastyAcceleration < -5){
-	            	timerHandler.postDelayed(unlockTimer, unlockDelay);
-				}
-				if (!powerManager.isScreenOn() && yAcceleration < -5 && lastyAcceleration >= -5){
-	            	timerHandler.removeCallbacks(unlockTimer);
+				if (faceDownLock){
+					//Locks if screen is face down
+					if (powerManager.isScreenOn()){
+						if (zAcceleration < -zLockThreshold && lastzAcceleration >= -zLockThreshold){
+							partialLock.acquire();
+			        		timerHandler.postDelayed(lockTimer, lockDelay);
+						}
+						if (zAcceleration >= -zLockThreshold && lastzAcceleration < -zLockThreshold){
+			            	timerHandler.removeCallbacks(lockTimer);
+			            	partialLock.release();
+						}
+					}
+					if (!powerManager.isScreenOn()){
+						if (zAcceleration >= -zLockThreshold && lastzAcceleration < -zLockThreshold){
+							partialLock.acquire();
+			            	timerHandler.postDelayed(unlockTimer, unlockDelay);
+						}
+						if(zAcceleration < -zLockThreshold && lastzAcceleration >= -zLockThreshold){
+			            	timerHandler.removeCallbacks(unlockTimer);
+			            	partialLock.release();
+						}
+					}
 				}
 				lastyAcceleration = event.values[1];
+				lastzAcceleration = event.values[2];
 			}
 			break;
 		}

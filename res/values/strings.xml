@@ -30,4 +30,7 @@
 
     <string name="titleRotateLock">Disable in portrait mode</string>
     <string name="summaryRotateLock">Disables the app when the phone is in portrait mode. Useful for playing games</string>
+    
+    <string name="titleFaceDownLock">Lock when face down</string>
+    <string name="summaryFaceDownLock">Locks the screen with the gravity sensor when the device turns face down</string>
 </resources>

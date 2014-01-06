@@ -29,6 +29,11 @@
         android:summary="@string/summaryRotateLock"
         android:defaultValue="True"/>
     <CheckBoxPreference 
+        android:title="@string/titleFaceDownLock"
+        android:key="faceDownLock"
+        android:summary="@string/summaryFaceDownLock"
+        android:defaultValue="True"/>
+    <CheckBoxPreference 
         android:title="@string/titlePrefSound"
         android:key="unlockBeep"
         android:summary="@string/summaryPrefSound"
