@@ -23,16 +23,6 @@
         android:summary="@string/summaryGravityRate"
         android:key="gravityRate"
         android:defaultValue="500"/>
-    <EditTextPreference 
-        android:title="@string/titleUpsideDownLockAngle"
-        android:summary="@string/summaryUpsideDownLockAngle"
-        android:key="upsideDownLockAngle"
-        android:defaultValue="50"/>
-    <EditTextPreference 
-        android:title="@string/titleTableLockAngle"
-        android:summary="@string/summaryTableLockAngle"
-        android:key="tableLockAngle"
-        android:defaultValue="70"/>
     <CheckBoxPreference 
         android:title="@string/titleRotateLock"
         android:key="rotateLock"
@@ -43,6 +33,17 @@
         android:key="faceDownLock"
         android:summary="@string/summaryFaceDownLock"
         android:defaultValue="True"/>
+    <EditTextPreference 
+        android:title="@string/titleUpsideDownLockAngle"
+        android:summary="@string/summaryUpsideDownLockAngle"
+        android:key="upsideDownLockAngle"
+        android:defaultValue="50"/>
+    <EditTextPreference 
+        android:title="@string/titleTableLockAngle"
+        android:summary="@string/summaryTableLockAngle"
+        android:key="tableLockAngle"
+        android:defaultValue="70"
+        android:dependency="faceDownLock"/>
     <CheckBoxPreference 
         android:title="@string/titlePrefSound"
         android:key="unlockBeep"

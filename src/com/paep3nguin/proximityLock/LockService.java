@@ -75,14 +75,14 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		
 		//Registers power manager
 		powerManager = (PowerManager)getSystemService(POWER_SERVICE);
+		
+		//Initializes wake lock
+		screenLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
+		        | PowerManager.ON_AFTER_RELEASE, "ScreenOnLock");
+		partialLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PartialLock");
 
 		//Makes tone generator to play beeps
 		tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME);
-		
-		//Initializes wake lock
-		screenLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
-		        | PowerManager.ON_AFTER_RELEASE, "MyWakeLock");
-		partialLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakeLock");
 
 		//Gets shared preferences
 		this.sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
@@ -138,6 +138,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		mSensorManager.unregisterListener(this, mProximity);
 		mSensorManager.unregisterListener(this, mGravity);
     	timerHandler.removeCallbacks(null);
+		//Unregisters preference change listener
 		super.onDestroy();
 	}
 	
@@ -151,7 +152,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	            PendingIntent.FLAG_ONE_SHOT);
 	    AlarmManager alarmService = (AlarmManager)getApplicationContext().getSystemService(Context.ALARM_SERVICE);
 	    alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() +10000, restartServicePI);
-
 	}
 
 	//Sounds a beep if the proper preference is checked
@@ -173,7 +173,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 						    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 						    gravityRate * 1000);
 				}
-         		partialLock.release();
 		   }
 	};
 	
@@ -187,7 +186,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				    if (lockMethod == 1){
 				    	mSensorManager.unregisterListener(LockService.this, mGravity);
 					}
-	         		partialLock.release();
+			    	partialLock.release();
 		   }
 	};
 	
@@ -244,7 +243,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				proximity = event.values[0];
 				if (powerManager.isScreenOn()){
 					if (proximity < 1){
-						partialLock.acquire();
 		        		timerHandler.postDelayed(lockTimer, lockDelay);
 					}
 					if (proximity >= 1){
@@ -258,6 +256,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					}
 					if (proximity < 1){
 		            	timerHandler.removeCallbacks(unlockTimer);
+				    	partialLock.release();
 					}
 				}
 			}
@@ -269,12 +268,10 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				//Locks if screen is upside down
 				if (powerManager.isScreenOn()){
 					if (yAcceleration < -yLockThreshold && lastyAcceleration >= -yLockThreshold){
-						partialLock.acquire();
 		        		timerHandler.postDelayed(lockTimer, lockDelay);
 					}
 					if (yAcceleration >= -yLockThreshold && lastyAcceleration < -yLockThreshold){
 		            	timerHandler.removeCallbacks(lockTimer);
-		            	partialLock.release();
 					}
 				}
 				if (!powerManager.isScreenOn()){
@@ -291,12 +288,10 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					//Locks if screen is face down
 					if (powerManager.isScreenOn()){
 						if (zAcceleration < -zLockThreshold && lastzAcceleration >= -zLockThreshold){
-							partialLock.acquire();
 			        		timerHandler.postDelayed(lockTimer, lockDelay);
 						}
 						if (zAcceleration >= -zLockThreshold && lastzAcceleration < -zLockThreshold){
 			            	timerHandler.removeCallbacks(lockTimer);
-			            	partialLock.release();
 						}
 					}
 					if (!powerManager.isScreenOn()){
@@ -313,6 +308,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				lastyAcceleration = event.values[1];
 				lastzAcceleration = event.values[2];
 			}
+			break;
+		case 3:
 			break;
 		}
 	}
