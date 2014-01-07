@@ -1,5 +1,7 @@
 package com.paep3nguin.proximityLock;
 
+import com.paep3nguin.proximityLock.LockService.prefValues;
+
 import android.app.AlarmManager;
 import android.app.KeyguardManager;
 import android.app.PendingIntent;
@@ -165,40 +167,66 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	public void onSystemUiVisibilityChange(int arg0) {
 		//Implement!!!
 	}
+	
+	public enum prefValues{
+		lockMethod, lockDelay, unlockDelay, gravityRate, upsideDownLockAngle, tableLockAngle, rotateLock, faceDownLock, beepPref;
+	}
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
 			String key) {
-		
-		//Get values for preferences
-		lockMethod = Integer.parseInt(sharedPref.getString("lockMethod","1"));
-		lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
-		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
-		gravityRate = Integer.parseInt(sharedPref.getString("gravityRate", "500"));
-		upsideDownLockAngle = Integer.parseInt(sharedPref.getString("upsideDownLockAngle", "50"));
-		tableLockAngle = Integer.parseInt(sharedPref.getString("tableLockAngle", "70"));
-		rotateLock = sharedPref.getBoolean("rotateLock", true);
-		faceDownLock = sharedPref.getBoolean("faceDownLock", true);
-		beepPref = sharedPref.getBoolean("unlockBeep", false);
 
 		float pi = 3.14159265359f;
-		yLockThreshold = (float) (9.8*Math.sin(upsideDownLockAngle/180*pi));
-		zLockThreshold = (float) (9.8*Math.sin(tableLockAngle/180*pi));
 		
-		//Registers listeners depending on selected lock method
-		switch (lockMethod){
-		case 0: case 1:
-			//Registers proximity sensor listener
-			isProximityRegistered = false;
-			isProximityRegistered = mSensorManager.registerListener(this,
-				    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
-				    SensorManager.SENSOR_DELAY_NORMAL);
+		
+			
+		//Get values for preferences
+		switch (prefValues.valueOf(key)){
+		case lockMethod:
+			lockMethod = Integer.parseInt(sharedPref.getString("lockMethod","1"));
+
+			//Registers listeners depending on selected lock method
+			switch (lockMethod){
+			case 0: case 1:
+				//Registers proximity sensor listener
+				isProximityRegistered = false;
+				isProximityRegistered = mSensorManager.registerListener(this,
+					    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
+					    SensorManager.SENSOR_DELAY_NORMAL);
+				break;
+			case 2: case 3:
+				//Registers gravity sensor listener
+				mSensorManager.registerListener(this,
+					    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+					    gravityRate * 1000);
+				break;
+			}
 			break;
-		case 2: case 3:
-			//Registers gravity sensor listener
-			mSensorManager.registerListener(this,
-				    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
-				    gravityRate * 1000);
+		case lockDelay:
+			lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
+			break;
+		case unlockDelay:
+			unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
+			break;
+		case gravityRate:
+			gravityRate = Integer.parseInt(sharedPref.getString("gravityRate", "500"));
+			break;
+		case upsideDownLockAngle:
+			upsideDownLockAngle = Integer.parseInt(sharedPref.getString("upsideDownLockAngle", "50"));
+			yLockThreshold = (float) (9.8*Math.sin(upsideDownLockAngle/180*pi));
+			break;
+		case tableLockAngle:
+			tableLockAngle = Integer.parseInt(sharedPref.getString("tableLockAngle", "70"));
+			zLockThreshold = (float) (9.8*Math.sin(tableLockAngle/180*pi));
+			break;
+		case rotateLock:
+			rotateLock = sharedPref.getBoolean("rotateLock", true);
+			break;
+		case faceDownLock:
+			faceDownLock = sharedPref.getBoolean("faceDownLock", true);
+			break;
+		case beepPref:
+			beepPref = sharedPref.getBoolean("unlockBeep", false);
 			break;
 		}
 	}
