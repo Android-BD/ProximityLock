@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -24,7 +25,7 @@ import android.preference.PreferenceManager;
 import android.view.OrientationEventListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 
-public class LockService extends Service implements SensorEventListener, OnSystemUiVisibilityChangeListener{
+public class LockService extends Service implements SensorEventListener, OnSystemUiVisibilityChangeListener, OnSharedPreferenceChangeListener{
 	//Sensors
 	private SensorManager mSensorManager;
 	private Sensor mProximity;
@@ -37,6 +38,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	float zLockThreshold;
 	
 	OrientationEventListener oListener;
+	OnSharedPreferenceChangeListener listener;
 	PowerManager powerManager;
 	DevicePolicyManager deviceManager;
 	ComponentName compName;
@@ -111,6 +113,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		float pi = 3.14159265359f;
 		yLockThreshold = (float) (9.8*Math.sin(upsideDownLockAngle/180*pi));
 		zLockThreshold = (float) (9.8*Math.sin(tableLockAngle/180*pi));
+
+		sharedPref.registerOnSharedPreferenceChangeListener(this);
 		
 		//Registers listeners depending on selected lock method
 		switch (lockMethod){
@@ -135,10 +139,13 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	
 	@Override
 	public void onDestroy(){
+		//Unregisters listeners
 		mSensorManager.unregisterListener(this, mProximity);
 		mSensorManager.unregisterListener(this, mGravity);
+    	sharedPref.unregisterOnSharedPreferenceChangeListener(this);
+    	
+    	//Removes any remaining handler events  
     	timerHandler.removeCallbacks(null);
-		//Unregisters preference change listener
 		super.onDestroy();
 	}
 	
@@ -154,6 +161,48 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	    alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() +10000, restartServicePI);
 	}
 
+	@Override
+	public void onSystemUiVisibilityChange(int arg0) {
+		//Implement!!!
+	}
+
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
+			String key) {
+		
+		//Get values for preferences
+		lockMethod = Integer.parseInt(sharedPref.getString("lockMethod","1"));
+		lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
+		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
+		gravityRate = Integer.parseInt(sharedPref.getString("gravityRate", "500"));
+		upsideDownLockAngle = Integer.parseInt(sharedPref.getString("upsideDownLockAngle", "50"));
+		tableLockAngle = Integer.parseInt(sharedPref.getString("tableLockAngle", "70"));
+		rotateLock = sharedPref.getBoolean("rotateLock", true);
+		faceDownLock = sharedPref.getBoolean("faceDownLock", true);
+		beepPref = sharedPref.getBoolean("unlockBeep", false);
+
+		float pi = 3.14159265359f;
+		yLockThreshold = (float) (9.8*Math.sin(upsideDownLockAngle/180*pi));
+		zLockThreshold = (float) (9.8*Math.sin(tableLockAngle/180*pi));
+		
+		//Registers listeners depending on selected lock method
+		switch (lockMethod){
+		case 0: case 1:
+			//Registers proximity sensor listener
+			isProximityRegistered = false;
+			isProximityRegistered = mSensorManager.registerListener(this,
+				    mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY),
+				    SensorManager.SENSOR_DELAY_NORMAL);
+			break;
+		case 2: case 3:
+			//Registers gravity sensor listener
+			mSensorManager.registerListener(this,
+				    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+				    gravityRate * 1000);
+			break;
+		}
+	}
+	
 	//Sounds a beep if the proper preference is checked
 	public void beep(){
 		if(beepPref == true){
@@ -189,11 +238,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 			    	partialLock.release();
 		   }
 	};
-	
-	@Override
-	public void onSystemUiVisibilityChange(int arg0) {
-		//Implement!!!
-	}
 	
 	@Override
 	public void onSensorChanged(SensorEvent event){
