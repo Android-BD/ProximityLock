@@ -33,4 +33,10 @@
     
     <string name="titleFaceDownLock">Lock when face down</string>
     <string name="summaryFaceDownLock">Locks the screen with the gravity sensor when the device turns face down</string>
+    
+    <string name="titleUpsideDownLockAngle">Minimum angle to lock when upside down</string>
+    <string name="summaryUpsideDownLockAngle">90 degrees is vertical, 0 degrees is horizontal</string>
+    
+    <string name="titleTableLockAngle">Minimum angle to lock when laying down on table</string>
+    <string name="summaryTableLockAngle">90 degrees is vertical, 0 degrees is horizontal</string>
 </resources>

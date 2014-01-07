@@ -57,6 +57,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	int unlockDelay;
 	int lockMethod;
 	int gravityRate;
+	int upsideDownLockAngle;
+	int tableLockAngle;
 	
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -98,9 +100,17 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		lockDelay = Integer.parseInt(sharedPref.getString("lockDelay", "1000"));
 		unlockDelay = Integer.parseInt(sharedPref.getString("unlockDelay", "1000"));
 		gravityRate = Integer.parseInt(sharedPref.getString("gravityRate", "500"));
+		upsideDownLockAngle = Integer.parseInt(sharedPref.getString("upsideDownLockAngle", "50"));
+		tableLockAngle = Integer.parseInt(sharedPref.getString("tableLockAngle", "70"));
 		rotateLock = sharedPref.getBoolean("rotateLock", true);
 		faceDownLock = sharedPref.getBoolean("faceDownLock", true);
 		beepPref = sharedPref.getBoolean("unlockBeep", false);
+
+		lastyAcceleration = 0;
+		lastzAcceleration = 0;
+		float pi = 3.14159265359f;
+		yLockThreshold = (float) (9.8*Math.sin(upsideDownLockAngle/180*pi));
+		zLockThreshold = (float) (9.8*Math.sin(tableLockAngle/180*pi));
 		
 		//Registers listeners depending on selected lock method
 		switch (lockMethod){
@@ -116,11 +126,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 			mSensorManager.registerListener(this,
 				    mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
 				    gravityRate * 1000);
-
-			lastyAcceleration = 0;
-			lastzAcceleration = 0;
-			yLockThreshold = 5;
-			zLockThreshold = 8;
 			break;
 		}
 		
@@ -192,11 +197,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	}
 	
 	@Override
-	public void onAccuracyChanged(Sensor arg0, int arg1) {
-		//Unnecessary
-	}
-
-	@Override
 	public void onSensorChanged(SensorEvent event){
 		if(rotateLock){
 			int width = getApplicationContext().getResources().getDisplayMetrics().widthPixels;
@@ -236,7 +236,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		         			mSensorManager.unregisterListener(this, mProximity);
 		         			isProximityRegistered = false;
 		         		}
-					}
+					}	
 				}
 			}
 		case 0:
@@ -249,7 +249,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					}
 					if (proximity >= 1){
 		            	timerHandler.removeCallbacks(lockTimer);
-		            	partialLock.release();
 					}
 				}
 				if (!powerManager.isScreenOn()){
@@ -259,7 +258,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					}
 					if (proximity < 1){
 		            	timerHandler.removeCallbacks(unlockTimer);
-		            	partialLock.release();
 					}
 				}
 			}
@@ -317,5 +315,10 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 			}
 			break;
 		}
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor arg0, int arg1) {
+		//Unnecessary
 	}
 }

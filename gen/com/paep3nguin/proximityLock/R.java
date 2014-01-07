@@ -52,7 +52,9 @@ public final class R {
         public static final int summaryLockMethod=0x7f07000e;
         public static final int summaryPrefSound=0x7f070008;
         public static final int summaryRotateLock=0x7f070013;
+        public static final int summaryTableLockAngle=0x7f070019;
         public static final int summaryUnLockDelay=0x7f07000c;
+        public static final int summaryUpsideDownLockAngle=0x7f070017;
         public static final int textField=0x7f070003;
         public static final int titleFaceDownLock=0x7f070014;
         public static final int titleGravityRate=0x7f070010;
@@ -67,7 +69,9 @@ public final class R {
          */
         public static final int titleServiceStart=0x7f070004;
         public static final int titleServiceStop=0x7f070005;
+        public static final int titleTableLockAngle=0x7f070018;
         public static final int titleUnLockDelay=0x7f07000b;
+        public static final int titleUpsideDownLockAngle=0x7f070016;
     }
     public static final class style {
         /** 
