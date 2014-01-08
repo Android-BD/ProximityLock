@@ -54,7 +54,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	
 	//Preference values
 	SharedPreferences sharedPref;
-	boolean beepPref;
+	boolean unlockBeep;
 	boolean faceDownLock;
 	boolean rotateLock;
 	int lockDelay;
@@ -108,7 +108,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		tableLockAngle = Integer.parseInt(sharedPref.getString("tableLockAngle", "70"));
 		rotateLock = sharedPref.getBoolean("rotateLock", true);
 		faceDownLock = sharedPref.getBoolean("faceDownLock", true);
-		beepPref = sharedPref.getBoolean("unlockBeep", false);
+		unlockBeep = sharedPref.getBoolean("unlockBeep", false);
 
 		lastyAcceleration = 0;
 		lastzAcceleration = 0;
@@ -169,7 +169,7 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 	}
 	
 	public enum prefValues{
-		lockMethod, lockDelay, unlockDelay, gravityRate, upsideDownLockAngle, tableLockAngle, rotateLock, faceDownLock, beepPref;
+		lockMethod, lockDelay, unlockDelay, gravityRate, upsideDownLockAngle, tableLockAngle, rotateLock, faceDownLock, unlockBeep;
 	}
 
 	@Override
@@ -178,8 +178,6 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 
 		float pi = 3.14159265359f;
 		
-		
-			
 		//Get values for preferences
 		switch (prefValues.valueOf(key)){
 		case lockMethod:
@@ -225,15 +223,15 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 		case faceDownLock:
 			faceDownLock = sharedPref.getBoolean("faceDownLock", true);
 			break;
-		case beepPref:
-			beepPref = sharedPref.getBoolean("unlockBeep", false);
+		case unlockBeep:
+			unlockBeep = sharedPref.getBoolean("unlockBeep", false);
 			break;
 		}
 	}
 	
 	//Sounds a beep if the proper preference is checked
 	public void beep(){
-		if(beepPref == true){
+		if(unlockBeep == true){
 			tg.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);			
 		}
 	}
@@ -263,7 +261,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 				    if (lockMethod == 1){
 				    	mSensorManager.unregisterListener(LockService.this, mGravity);
 					}
-			    	partialLock.release();
+				    if(partialLock.isHeld())
+				    	partialLock.release();
 		   }
 	};
 	
@@ -328,7 +327,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					}
 					if (proximity < 1){
 		            	timerHandler.removeCallbacks(unlockTimer);
-				    	partialLock.release();
+					    if(partialLock.isHeld())
+					    	partialLock.release();
 					}
 				}
 			}
@@ -353,7 +353,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 					}
 					if(yAcceleration < -yLockThreshold && lastyAcceleration >= -yLockThreshold){
 		            	timerHandler.removeCallbacks(unlockTimer);
-		            	partialLock.release();
+					    if(partialLock.isHeld())
+					    	partialLock.release();
 					}
 				}
 				if (faceDownLock){
@@ -373,7 +374,8 @@ public class LockService extends Service implements SensorEventListener, OnSyste
 						}
 						if(zAcceleration < -zLockThreshold && lastzAcceleration >= -zLockThreshold){
 			            	timerHandler.removeCallbacks(unlockTimer);
-			            	partialLock.release();
+						    if(partialLock.isHeld())
+						    	partialLock.release();
 						}
 					}
 				}
